@@ -1,0 +1,180 @@
+dora:
+  camera:
+    camera_opencv:
+      default_params:
+        path: ../../components/camera_opencv/main.py
+        period: 30
+        width: 640
+        height: 480
+        output:  
+          - image
+        encoding: "bgr8"
+      outputs_info:
+        image:
+          width: 640
+          height: 480
+          channels: 3
+
+    camera_realsense:
+      default_params:
+        path: ../../components/camera_rgbd_realsense/main.py
+        period: 30
+        width: 640
+        height: 480
+        device_serial: ""
+        output:  
+          - image
+          - image_depth
+        encoding: "bgr8"
+      outputs_info:
+        image:
+          width: 640
+          height: 480
+          channels: 3
+        image_depth:
+          width: 640
+          height: 480
+          channels: 3
+    
+    camera_orbbec:
+      default_params:
+        path: ../../components/camera_rgbd_orbbec/main.py
+        period: 30
+        width: 640
+        height: 480
+        device_serial: ""
+        output:  
+          - image
+          - image_depth
+        encoding: "bgr8"
+      outputs_info:
+        image:
+          width: 640
+          height: 480
+          channels: 3
+        image_depth:
+          width: 640
+          height: 480
+          channels: 3
+
+    camera_zed:
+      default_params:
+        path: ../../components/camera_rgbd_zed/main.py
+        period: 30
+        width: 640
+        height: 480
+        device_serial: ""
+        output:  
+          - image_left
+          - image_right
+        encoding: "bgr8"
+      outputs_info:
+        image_left:
+          width: 640
+          height: 480
+          channels: 3
+        image_right:
+          width: 640
+          height: 480
+          channels: 3
+
+  arm:
+    robot_arm:
+      default_params:
+        path: ../../components/robot_arm/main.py
+        period: 30
+        output:
+          - pose
+      outputs_info:
+        pose:
+          motors:
+            joint_1: [1, "piper-motor"]
+            joint_2: [2, "piper-motor"]
+            joint_3: [3, "piper-motor"]
+            joint_4: [4, "piper-motor"]
+            joint_5: [5, "piper-motor"]
+            joint_6: [6, "piper-motor"]
+            pose_x:  [7, "piper-pose"]
+            pose_y:  [8, "piper-pose"]
+            pose_z:  [9, "piper-pose"]
+            pose_rx: [10, "piper-pose"]
+            pose_ry: [11, "piper-pose"]
+            pose_rz: [12, "piper-pose"]
+            gripper: [13, "piper-gripper"]
+
+ros:
+  camera:
+    ros_opencv:
+      default_params:
+        topic: ""
+        msgs: ""
+        period: 30
+        output:
+          - image
+      outputs_info:
+        image:
+          width: 640
+          height: 480
+          channels: 3
+    
+    ros_realsense:
+      default_params:
+        topic: ""
+        msgs: ""
+        period: 30
+        output: 
+          - image
+          - image_depth
+      outputs_info:
+        image:
+          width: 640
+          height: 480
+          channels: 3
+        image_depth:
+          width: 640
+          height: 480
+          channels: 3
+
+    ros_orbbec:
+      default_params:
+        topic: ""
+        period: 30
+        output: 
+          - image
+          - image_depth
+      outputs_info:
+        image:
+          width: 640
+          height: 480
+          channels: 3
+        image_depth:
+          width: 640
+          height: 480
+          channels: 3
+
+  arm:
+    ros_arm:
+      default_params:
+        topic: ""
+        msgs: ""
+        period: 30
+        output:
+          - pose
+      outputs_info:
+        pose:
+          motors:
+            joint_1: [1, "piper-motor"]
+            joint_2: [2, "piper-motor"]
+            joint_3: [3, "piper-motor"]
+            joint_4: [4, "piper-motor"]
+            joint_5: [5, "piper-motor"]
+            joint_6: [6, "piper-motor"]
+            pose_x:  [7, "piper-pose"]
+            pose_y:  [8, "piper-pose"]
+            pose_z:  [9, "piper-pose"]
+            pose_rx: [10, "piper-pose"]
+            pose_ry: [11, "piper-pose"]
+            pose_rz: [12, "piper-pose"]
+            gripper: [13, "piper-gripper"]
+
+
