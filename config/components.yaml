@@ -154,7 +154,7 @@ ros:
           channels: 3
 
   arm:
-    robot_arm:
+    robotera_pose:
       default_params:
         topic: ""
         msgs: ""
@@ -164,18 +164,56 @@ ros:
       outputs_info:
         pose:
           motors:
-            joint_1: [1, "piper-motor"]
-            joint_2: [2, "piper-motor"]
-            joint_3: [3, "piper-motor"]
-            joint_4: [4, "piper-motor"]
-            joint_5: [5, "piper-motor"]
-            joint_6: [6, "piper-motor"]
-            pose_x:  [7, "piper-pose"]
-            pose_y:  [8, "piper-pose"]
-            pose_z:  [9, "piper-pose"]
-            pose_rx: [10, "piper-pose"]
-            pose_ry: [11, "piper-pose"]
-            pose_rz: [12, "piper-pose"]
-            gripper: [13, "piper-gripper"]
+            "position_x": [1, "robotera_motor"]
+            "position_y": [2, "robotera_motor"]
+            "position_z": [3, "robotera_motor"]
+            "orientation_x": [4, "robotera_motor"]
+            "orientation_y": [5, "robotera_motor"]
+            "orientation_z": [6, "robotera_motor"]
+            "orientation_w": [7, "robotera_motor"]
+
+    robotera_finger_joints:
+      default_params:
+        topic: ""
+        msgs: ""
+        period: 30
+        output:
+          - pose
+      outputs_info:
+        pose:
+          motors:
+            "hand_thumb_rota_joint2_position": [1, "robotera_motor"]
+            "hand_index_bend_joint_position": [2, "robotera_motor"]
+            "hand_pinky_joint2_position": [3, "robotera_motor"]
+            "hand_index_joint1_position": [4, "robotera_motor"]
+            "hand_index_joint2_position": [5, "robotera_motor"]
+            "hand_mid_joint2_position": [6, "robotera_motor"]
+            "hand_thumb_rota_joint1_position": [7, "robotera_motor"]
+            "hand_ring_joint2_position": [8, "robotera_motor"]
+            "hand_ring_joint1_position": [9, "robotera_motor"]
+            "hand_thumb_bend_joint_position": [10, "robotera_motor"]
+            "hand_mid_joint1_position": [11, "robotera_motor"]
+            "hand_pinky_joint1_position": [12, "robotera_motor"]
+
+    robotera_tasks_joints:
+      default_params:
+        topic: ""
+        msgs: ""
+        period: 30
+        output:
+          - pose
+      outputs_info:
+        pose:
+          motors:
+            "left_drv_wheel_joint": [1, "robotera_motor"]
+            "left_drv_hang_joint": [2, "robotera_motor"]
+            "neck_pitch_joint": [3, "robotera_motor"]
+            "right_drv_wheel_joint": [4, "robotera_motor"]
+            "ankle_joint": [5, "robotera_motor"]
+            "neck_yaw_joint": [6, "robotera_motor"]
+            "waist_yaw_joint": [7, "robotera_motor"]
+            "right_drv_hang_joint": [8, "robotera_motor"]
+            "hip_joint": [9, "robotera_motor"]
+            "knee_joint": [10, "robotera_motor"]
 
 

@@ -5,7 +5,8 @@ import json
 import numpy as np  
 import torch  
 import cv2  
-from operating_platform.robot.robots.demo_robot.robot_config import Robot_configRobotConfig
+from operating_platform.robot.robots.utils import RobotDeviceNotConnectedError
+from operating_platform.robot.robots.demo_robot.robot_config import DemoRobotRobotConfig
 from operating_platform.robot.robots.com_configs.cameras import CameraConfig, OpenCVCameraConfig ,IntelRealSenseCameraConfig
 from operating_platform.robot.robots.camera import Camera
   
@@ -16,69 +17,36 @@ socket.connect(ipc_address)
 socket.setsockopt(zmq.RCVTIMEO, 300)  
 
   
-recv_wrist_data = {}  
-recv_finger_data = {}  
-recv_head_data = {}  
+recv_follower = {}  
 recv_images = {}
-recv_full_skeleton = {}  
 lock = threading.Lock()  
-  
-def pose_recv_server():
-    while True:    
-        try:   
-            
-            message_parts = socket.recv_multipart()  
-            
-            if len(message_parts) < 1:    
-                continue    
-    
-            event_id = message_parts[0].decode('utf-8')  
-            buffer_bytes = message_parts[1]  
-            # print(event_id)
-            # print(len(buffer_bytes))
-            # print(1)
-            # 检查是否有第三个部分（metadata）  
-            metadata = {}  
-            if len(message_parts) >= 3:  
-                try:  
-                    metadata = json.loads(message_parts[2].decode('utf-8'))  
-                except:  
-                    metadata = {}  
-    
-            if 'wrist_left' in event_id:    
-                pose_left_data = np.frombuffer(buffer_bytes, dtype=np.float32) 
-                # print(pose_left_data)
-                with lock:    
-                    recv_wrist_data[event_id] = pose_left_data
- 
-            elif 'wrist_right' in event_id:    
-                pose_right_data = np.frombuffer(buffer_bytes, dtype=np.float32)  
-                with lock:    
-                    recv_wrist_data[event_id] = pose_right_data   
-    
-            elif 'finger_left' in event_id:    
-                finger_left_data = np.frombuffer(buffer_bytes, dtype=np.float32)    
-                with lock:    
-                    recv_finger_data[event_id] = finger_left_data  
-            elif 'finger_right' in event_id:    
-                finger_right_data = np.frombuffer(buffer_bytes, dtype=np.float32)  
-                with lock:    
-                    recv_finger_data[event_id] = finger_right_data   
-    
-            elif 'head_pose' in event_id:    
-                head_data = np.frombuffer(buffer_bytes, dtype=np.float32)    
-                with lock:    
-                    recv_head_data[event_id] = head_data
 
-            elif 'left_full_skeleton' in event_id:    
-                left_full_skeleton = np.frombuffer(buffer_bytes, dtype=np.float32)    
-                with lock:    
-                    recv_full_skeleton[event_id] = left_full_skeleton
-            
-            elif 'right_full_skeleton' in event_id:    
-                right_full_skeleton = np.frombuffer(buffer_bytes, dtype=np.float32)    
-                with lock:    
-                    recv_full_skeleton[event_id] = right_full_skeleton
+def recv_server(key_dict):
+    
+    while True:
+        try:
+            message_parts = socket.recv_multipart()
+            if len(message_parts) < 1:
+                continue
+
+            event_id = message_parts[0].decode('utf-8')
+            buffer_bytes = message_parts[1]
+
+            # 解析可选 metadata
+            metadata = {}
+            if len(message_parts) >= 3:
+                try:
+                    metadata = json.loads(message_parts[2].decode('utf-8'))
+                except Exception:
+                    metadata = {}
+
+            # 遍历映射表，动态判断 event_id 属于哪类数据
+            for key,value in key_dict.items():
+                if key in event_id:
+                    data = np.frombuffer(buffer_bytes, dtype=np.float32)
+                    with lock:
+                        recv_follower[event_id] = data
+                    break  
             
             if 'image' in event_id:
                 # 解码图像
@@ -118,12 +86,9 @@ def pose_recv_server():
                         with lock:
                             # print(f"Received event_id = {event_id}")
                             recv_images[event_id] = rgb_depth
-
-        except zmq.Again:    
-            continue    
-        except Exception as e:    
-            print("recv error:", e)    
-            break
+        except Exception as e:
+            print(f"[pose_recv_server] Error: {e}")
+            continue
 
 
 
@@ -203,8 +168,8 @@ def make_cameras_from_configs(camera_configs: dict[str, CameraConfig]) -> list[C
             raise ValueError(f"The camera type '{cfg.type}' is not valid.")
     return cameras
 
-class RobotconfigManipulator:  
-    def __init__(self, config: Robot_configRobotConfig):  
+class DemoRobotManipulator:  
+    def __init__(self, config: DemoRobotRobotConfig):  
         self.config = config  
         self.robot_type = self.config.type  
         
@@ -213,21 +178,15 @@ class RobotconfigManipulator:
         self.microphones = self.config.microphones
         
         self.cameras =  make_cameras_from_configs(self.config.cameras)
-        
-        # self.follower_arms = {} 
-        # self.follower_arms["left_wrist"] = self.config.left_wrist_tracker.motors  
-        # self.follower_arms["right_wrist"] = self.config.right_wrist_tracker.motors  
-        # self.follower_arms["head"] = self.config.head_tracker.motors
 
-        # self.finger_sensors = {}  
-        # self.finger_sensors["left_finger"] = self.config.left_finger_sensors.motors  
-        # self.finger_sensors["right_finger"] = self.config.right_finger_sensors.motors 
-        
-        # self.full_skeleton = {}  
-        # self.full_skeleton["left_skeleton"] = self.config.left_full_skeleton.motors  
-        # self.full_skeleton["right_skeleton"] = self.config.right_full_skeleton.motors
+        self.follower_arms = {
+            name: motor_cfg.motors
+            for name, motor_cfg in self.config.follower_motors.items()
+            if hasattr(motor_cfg, "motors")
+        }
+        self.key_dict={name: len(motors) for name, motors in self.follower_arms.items()}
 
-        pose_recv_thread = threading.Thread(target=pose_recv_server, daemon=True)  
+        pose_recv_thread = threading.Thread(target=recv_server(self.key_dict), daemon=True)  
         pose_recv_thread.start()   
 
         
@@ -252,9 +211,9 @@ class RobotconfigManipulator:
   
     @property    
     def motor_features(self) -> dict:  
-        all_motor_groups = {**self.follower_arms, **self.finger_sensors, **self.full_skeleton}  
-        action_names = self.get_motor_names(all_motor_groups)  
-        state_names = self.get_motor_names(all_motor_groups)  
+        motor_groups = {**self.follower_arms}  
+        action_names = self.get_motor_names(motor_groups)  
+        state_names = self.get_motor_names(motor_groups)  
         
         return {  
             "action": {    
@@ -276,14 +235,12 @@ class RobotconfigManipulator:
     def connect(self):  
         timeout = 10 
         start_time = time.perf_counter()  
-  
+        expected_keys = list(self.key_dict.keys())
         while True:  
-            wrist_ready = all(key in recv_wrist_data for key in ['wrist_left', 'wrist_right'])  
-            finger_ready = all(key in recv_finger_data for key in ['finger_left', 'finger_right'])  
-            head_ready = 'head_pose' in recv_head_data  
-            image_ready = 'image_top' in recv_images  
-            print(wrist_ready,finger_ready,image_ready,head_ready)
-            if image_ready:  
+            follower_arm_ready = all(key in recv_follower for key in expected_keys)  
+            image_ready = 'image' in recv_images  
+            print(follower_arm_ready,image_ready)
+            if image_ready and follower_arm_ready:  
                 break  
   
             if time.perf_counter() - start_time > timeout:  
@@ -294,53 +251,68 @@ class RobotconfigManipulator:
         self.is_connected = True  
   
     
-    def teleop_step(self, record_data=False):  
-        if not self.is_connected:  
-            raise Exception("设备未连接")  
-    
-        if not record_data:  
-            return  
-    
-        with lock:  
-            # 收集状态数据  
-            state_data = []     
+    def teleop_step(
+        self, record_data=False, 
+    ) -> None | tuple[dict[str, torch.Tensor], dict[str, torch.Tensor]]:
 
-            if 'left_full_skeleton' in recv_full_skeleton:  
-                state_data.extend(recv_full_skeleton['left_full_skeleton'])  
-            if 'right_full_skeleton' in recv_full_skeleton:    
-                state_data.extend(recv_full_skeleton['right_full_skeleton'])
-            if 'wrist_left' in recv_wrist_data:  
-                state_data.extend(recv_wrist_data['wrist_left'])  
-            if 'wrist_right' in recv_wrist_data:    
-                state_data.extend(recv_wrist_data['wrist_right'])
-            if 'finger_left' in recv_finger_data:    
-                state_data.extend(recv_finger_data['finger_left'])
-            if 'finger_right' in recv_finger_data:    
-                state_data.extend(recv_finger_data['finger_right'])
-            if 'head_pose' in recv_head_data:    
-                state_data.extend(recv_head_data['head_pose'])
-            state = torch.from_numpy(np.array(state_data, dtype=np.float32))  
+        if not self.is_connected:
+            raise RobotDeviceNotConnectedError(
+                "Aloha is not connected. You need to run `robot.connect()`."
+            )
+
+        if not record_data:
+            return
+        
+        # print(self.follower_arms)
+
+        follower_joint = {}
+        for name in self.follower_arms:
+            # print(name)
+            for match_name in recv_follower:
+                # print(match_name)
+                dim=self.key_dict[match_name]
+                if name in match_name:
+                    now = time.perf_counter()
+                    # print(1)
+                    byte_array = np.zeros(dim, dtype=np.float32)
+                    pose_read = recv_follower[match_name]
+
+                    byte_array[:dim] = pose_read[:]
+                    byte_array = np.round(byte_array, 3)
+                    
+                    follower_joint[name] = torch.from_numpy(byte_array)
+                    # print(follower_joint)
+
+                    self.logs[f"read_follower_{name}_get_dt_s"] = time.perf_counter() - now
+                    break
             
-            # 正确获取图像数据 - 遍历所有相机  
-            images = {}  
-            for name in self.cameras:  
-                if name in recv_images:  
-                    images[name] = torch.from_numpy(recv_images[name])  
-                else:  
-                    images[name] = torch.from_numpy(np.zeros((480, 640, 3), dtype=np.uint8))  
-    
-        obs_dict = {
-            "observation.state": state,  
-        }  
+
+
+        state = follower_joint
+        action = follower_joint
+
+        state_array = np.concatenate(list(state.values()))
+        action_array = np.concatenate(list(action.values()))
+
+
         
-        # 添加图像数据  
-        for name in self.cameras:  
-            obs_dict[f"observation.images.{name}"] = images[name]  
-        
-        action_dict = {  
-            "action": state  
-        }  
-    
+        # Capture images from cameras
+        images = {}
+        for name in self.cameras:
+            now = time.perf_counter()
+            images[name] = recv_images[name]
+            images[name] = torch.from_numpy(images[name])
+            self.logs[f"read_camera_{name}_dt_s"] = time.perf_counter() - now
+
+        # Populate output dictionnaries and format to pytorch
+        obs_dict, action_dict = {}, {}
+        obs_dict["observation.state"] = state_array
+        action_dict["action"] = action_array
+
+
+        for name in self.cameras:
+            obs_dict[f"observation.images.{name}"] = images[name]
+
         return obs_dict, action_dict
   
     def disconnect(self):  

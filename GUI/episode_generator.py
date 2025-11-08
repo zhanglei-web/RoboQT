@@ -1,6 +1,8 @@
 import os
+import json
 import numpy as np
 import cv2
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 def generate_episode_structure(components, base_dir="./episodes", episode_id=1, n_frames=5, create_files=True):
     """
@@ -46,7 +48,7 @@ def generate_episode_structure(components, base_dir="./episodes", episode_id=1, 
                     fname = os.path.join(folder, f"frame_{i:06d}{ext}")
                     cv2.imwrite(fname, img)
 
-    # === 生成手臂结构 ===
+ 
     arms = components.get("arms", {})
     total_dof = sum(a["dof"] for a in arms.values())
     observations = np.zeros((n_frames, total_dof), dtype=np.float32)
@@ -55,10 +57,42 @@ def generate_episode_structure(components, base_dir="./episodes", episode_id=1, 
         np.save(os.path.join(data_dir, "observations.npy"), observations)
         np.save(os.path.join(data_dir, "actions.npy"), actions)
 
-    # === 打印结构树 ===
+
     print_episode_structure(ep_dir, cameras, arms, total_dof)
 
     return ep_dir
+
+def parse_robot_config_to_episode_components(json_path):
+    with open(json_path, "r", encoding="utf-8") as f:
+        config = json.load(f)
+
+    components = {"cameras": {}, "arms": {}}
+
+    for idx, comp in enumerate(config.get("components", [])):
+        comp_type = comp["type"]
+        params = comp.get("params", {})
+        outputs = params.get("output", [])
+        comp_id = comp.get("id", f"comp_{idx}")
+
+
+        if comp_type.startswith("camera/"):
+            for out in outputs:
+                cam_name = f"{comp_id}" 
+                components["cameras"][cam_name] = [out]
+
+
+        elif comp_type.startswith("arm/") or comp_type.startswith("robot_arm"):
+            arm_name = f"robot_arm_{comp_id}" 
+            outputs_info = comp.get("outputs_info", {}).get("pose", {})
+            motors = outputs_info.get("motors", {})
+            dof = len(motors) if motors else 6
+
+            components["arms"][arm_name] = {
+                "dof": dof,
+                "outputs": outputs
+            }
+
+    return components
 
 
 def print_episode_structure(ep_dir, cameras, arms, total_dof):
@@ -66,34 +100,33 @@ def print_episode_structure(ep_dir, cameras, arms, total_dof):
     print("├── images/")
     for cam_name, outputs in cameras.items():
         for out in outputs:
-            folder = f"{out}_{cam_name}"
+            folder = f"{cam_name}"
             print(f"│   ├── {folder}/")
             print(f"│   │   ├── frame_000001.jpg")
             print(f"│   │   ├── frame_000002.jpg")
             print(f"│   │   └── ...")
-
+    print("│")
     print("└── data/")
-    print(f"    ├── observations.npy   # shape=(N, {total_dof})")
+    print(f"    ├── observations   # shape=(1, {total_dof})")
     for arm, info in arms.items():
-        for i in range(info["dof"]):
-            print(f"    │   ├── {arm}_joint_{i}")
-    print(f"    └── actions.npy        # shape=(N, {total_dof})")
+        print(f"    │   ├── {arm}/")
+        for i in range(min(3, info['dof'])):
+            print(f"    │   │   ├── joint_{i}")
+        if info['dof'] > 3:
+            print(f"    │   │   └── ...")
+    print(f"    └── actions        # shape=(1, {total_dof})")
     for arm, info in arms.items():
-        for i in range(info["dof"]):
-            print(f"        ├── {arm}_joint_{i}")
+        print(f"        ├── {arm}/")
+        for i in range(min(3, info['dof'])):
+            print(f"        │   ├── joint_{i}")
+        if info['dof'] > 3:
+            print(f"        │   └── ...")
+
 
 
 if __name__ == "__main__":
-    # 示例：直接运行测试
-    components = {
-        "cameras": {
-            "top": ["image", "image_depth"],
-            "left": ["image"],
-            "right": ["image"]
-        },
-        "arms": {
-            "arm_left": {"dof": 13, "outputs": ["joint_positions"]},
-            "arm_right": {"dof": 13, "outputs": ["joint_positions"]}
-        }
-    }
+    json_path = "../config/robot_config.json"
+    components = parse_robot_config_to_episode_components(json_path)
+    print("解析结果：")
+    print(json.dumps(components, indent=4))
     generate_episode_structure(components, create_files=False)

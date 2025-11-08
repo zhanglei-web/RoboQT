@@ -4,9 +4,12 @@ import json
 from dataclasses import dataclass, field
 from ruamel.yaml import YAML
 from collections import defaultdict
+
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-# ========== 模板头部 ==========
+
+
+
 HEADER = """from dataclasses import dataclass, field
 from operating_platform.robot.robots.com_configs.cameras import *
 from operating_platform.robot.robots.com_configs.motors import *
@@ -24,19 +27,17 @@ def json_to_py(json_file: str, py_file: str):
         config = json.load(f)
 
     # 获取文件名（不带扩展名）
-    base_name = os.path.splitext(os.path.basename(json_file))[0]
-    class_name = base_name.capitalize() + "RobotConfig"
+    base_name = "demo_robot"
+    class_name = "DemoRobotRobotConfig"
 
-    # ========== 类定义开始 ==========
     lines = []
     lines.append(HEADER)
     lines.append(f'@RobotConfig.register_subclass("{base_name}")')
     lines.append("@dataclass")
     lines.append(f"class {class_name}:")
 
-    # ========== 遍历组件 ==========
-    camera_entries = []
-    camera_index = 0
+    # -------- 生成 follower_motors --------
+    follower_entries = []
     for comp in config["components"]:
         comp_type = comp["type"]
         comp_id = comp["id"]
@@ -44,32 +45,44 @@ def json_to_py(json_file: str, py_file: str):
         outputs_info = comp.get("outputs_info", {})
 
         for output in outputs:
-            # --- 生成 MotorsBusConfig ---
             if "pose" in output:
                 motors = outputs_info.get(output, {}).get("motors", {})
-                lines.append(f"    {output}_{comp_id} = MotorsBusConfig(")
-                lines.append(f'        port="{comp_id}",')
-                lines.append("        motors={")
+                follower_entries.append(f'            "{comp_id}": DDSMotorsBusConfig(')
+                follower_entries.append(f'                topic="",')  # 可根据需要填 topic
+                follower_entries.append(f'                group="",')  # 可根据需要填 group
+                follower_entries.append("                motors={")
                 for k, v in motors.items():
-                    lines.append(f'            "{k}": {v},')
-                lines.append("        }")
-                lines.append("    )\n")
+                    follower_entries.append(f'                    "{k}": {v},')
+                follower_entries.append("                },")
+                follower_entries.append("            ),")
 
-            # --- 生成 Cameras ---
-            if "image" in output:
-                params = comp["params"]
-                width = params.get("width", 640)
-                height = params.get("height", 480)
-                fps = params.get("period", 30)
-                camera_entries.append(f'            "image_{comp_id}": OpenCVCameraConfig(')
-                camera_entries.append(f"                camera_index={camera_index},")
-                camera_entries.append(f"                fps={fps},")
-                camera_entries.append(f"                width={width},")
-                camera_entries.append(f"                height={height},")
-                camera_entries.append("            ),")
-                camera_index += 1
+    if follower_entries:
+        lines.append("    follower_motors: dict[str, MotorsBusConfig] = field(")
+        lines.append("        default_factory=lambda: {")
+        lines.extend(follower_entries)
+        lines.append("        }")
+        lines.append("    )\n")
 
-    # 如果有相机，写 cameras dict
+    # -------- 生成 cameras --------
+    camera_entries = []
+    camera_index = 0
+    for comp in config["components"]:
+        comp_type = comp["type"]
+        comp_id = comp["id"]
+        outputs = comp["params"].get("output", [])
+        if "image" in outputs:
+            params = comp["params"]
+            width = params.get("width", 640)
+            height = params.get("height", 480)
+            fps = params.get("period", 30)
+            camera_entries.append(f'            "image_{comp_id}": OpenCVCameraConfig(')
+            camera_entries.append(f"                camera_index={camera_index},")
+            camera_entries.append(f"                fps={fps},")
+            camera_entries.append(f"                width={width},")
+            camera_entries.append(f"                height={height},")
+            camera_entries.append("            ),")
+            camera_index += 1
+
     if camera_entries:
         lines.append("    cameras: dict[str, CameraConfig] = field(")
         lines.append("        default_factory=lambda: {")
@@ -79,7 +92,7 @@ def json_to_py(json_file: str, py_file: str):
 
     # use_videos
     use_videos = config.get("use_videos", False)
-    lines.append(f"    use_videos: bool = {str(use_videos)}")
+    lines.append(f"    use_videos: bool = {str(use_videos)}\n")
 
     # microphones (固定模板)
     lines.append("    microphones: dict[str, int] = field(")
@@ -87,17 +100,13 @@ def json_to_py(json_file: str, py_file: str):
     lines.append("            # \"audio_right\": 2,")
     lines.append("            # \"audio_left\": 4,")
     lines.append("        }")
-    lines.append("    )")
+    lines.append("    )\n")
 
-    # ========== 输出 ==========
+    # -------- 输出到文件 --------
     output_code = "\n".join(lines)
-
     os.makedirs(os.path.dirname(py_file), exist_ok=True)
     with open(py_file, "w", encoding="utf-8") as f:
         f.write(output_code)
-
-
-
 
 
 def json_to_yaml(json_file, yaml_file):
@@ -108,17 +117,10 @@ def json_to_yaml(json_file, yaml_file):
     outputs_map = defaultdict(list)
 
     for comp in data["components"]:
-        node = {
-            "id": comp["id"],
-            "path": comp["params"]["path"],
-            "inputs": {
-                "tick": f'dora/timer/millis/{comp["params"]["period"]}'
-            },
-            "outputs": comp["params"]["output"]
-        }
-
-        for out in comp["params"]["output"]:
-            outputs_map[out].append((comp["id"], out))
+        comp_id = comp["id"]
+        path = comp["params"]["path"]
+        period = comp["params"].get("period", 30)
+        outputs = comp["params"].get("output", [])
 
         env = {}
         if "device_serial" in comp["params"]:
@@ -127,20 +129,29 @@ def json_to_yaml(json_file, yaml_file):
             env["IMAGE_WIDTH"] = comp["params"]["width"]
         if "height" in comp["params"]:
             env["IMAGE_HEIGHT"] = comp["params"]["height"]
-        if env:
-            node["env"] = env
 
-        nodes.append(node)
+        # 每个 output 生成单独节点，id = output + "_" + component id
+        for out in outputs:
+            node_id = f"{out}_{comp_id}" 
+            node = {
+                "id": node_id,
+                "path": path,
+                "inputs": {
+                    "tick": f"dora/timer/millis/{period}"
+                },
+                "outputs": [out]
+            }
+            if env:
+                node["env"] = env
 
-    # 处理 zeromq_bridge
+            nodes.append(node)
+            outputs_map[out].append(node_id)  
+
+    # 生成 zeromq_bridge 输入
     bridge_inputs = {}
-    for out, sources in outputs_map.items():
-        if len(sources) == 1:
-            comp_id, _ = sources[0]
-            bridge_inputs[out] = f"{comp_id}/{out}"
-        else:
-            for comp_id, _ in sources:
-                bridge_inputs[f"{out}_{comp_id}"] = f"{comp_id}/{out}"
+    for out, node_ids in outputs_map.items():
+        for nid in node_ids:
+            bridge_inputs[nid] = f"{nid}/{out}"
 
     nodes.append({
         "id": "zeromq_bridge",
@@ -148,14 +159,13 @@ def json_to_yaml(json_file, yaml_file):
         "inputs": bridge_inputs
     })
 
-    # 用 ruamel.yaml 来保持格式
     yaml = YAML()
-    yaml.indent(mapping=2, sequence=4, offset=2)  # 控制缩进
+    yaml.indent(mapping=2, sequence=4, offset=2)
     yaml.preserve_quotes = True
 
     with open(yaml_file, "w", encoding="utf-8") as f:
-        # f.write("nodes:\n\n")  # 手动补充顶层空行
         yaml.dump({"nodes": nodes}, f)
+
 
 
 
@@ -187,7 +197,7 @@ def copy_file_to_dir(src_file: str, dst_dir: str) -> str:
 
 if __name__ == "__main__":
     folder = make_output_dir("../../robots", "demo_robot")
-    json_to_py("../configs/robot_config.json",os.path.join(folder, "robot_config.py"))
-    json_to_yaml("../configs/robot_config.json", os.path.join(folder, "robot_config.yml"))
+    json_to_py("../config/robot_config.json",os.path.join(folder, "robot_config.py"))
+    json_to_yaml("../config/robot_config.json", os.path.join(folder, "robot_config.yml"))
     copy_file_to_dir("../templates/dora_zeromq.py", folder)
     copy_file_to_dir("../templates/manipulator.py", folder)

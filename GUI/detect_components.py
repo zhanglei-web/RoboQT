@@ -1,28 +1,29 @@
 import cv2
 
-# RealSense
+# realsense
 try:
     import pyrealsense2 as rs
-    HAS_REALSENSE = True
+    HAS_realsense = True
 except ImportError:
-    HAS_REALSENSE = False
+    HAS_realsense = False
 
-# ZED
+# zed
 try:
     import pyzed.sl as sl
-    HAS_ZED = True
+    HAS_zed = True
 except ImportError:
-    HAS_ZED = False
+    HAS_zed = False
 
-# Orbbec SDK
+# orbbec SDK
 try:
     import pyorbbecsdk as ob
-    HAS_ORBBEC = True
+    HAS_orbbec = True
 except ImportError:
-    HAS_ORBBEC = False
+    HAS_orbbec = False
 
 # ------------------ 摄像头分配 ------------------
-camera_allocation = {}  # { cam_name: comp_type }
+# { cam_name: comp_type }
+camera_allocation = {}  
 
 def release_camera(cam_name):
     if cam_name in camera_allocation:
@@ -44,48 +45,48 @@ class CameraDetector:
         for i in range(self.max_opencv_index):
             cap = cv2.VideoCapture(i)
             if cap.isOpened():
-                cam_name = f"OpenCV_{i}"
+                cam_name = f"opencv_{i}"
                 cameras.append(cam_name)
                 if cam_name not in camera_allocation:
                     camera_allocation[cam_name] = None
             cap.release()
         return cameras
 
-    def detect_realsense(self):
-        if not HAS_REALSENSE:
-            return []
-        ctx = rs.context()
-        cameras = []
-        for dev in ctx.devices:
-            name = dev.get_info(rs.camera_info.name)
-            serial = dev.get_info(rs.camera_info.serial_number)
-            cam_name = f"RealSense_{serial}"
-            cameras.append(cam_name)
-            if cam_name not in camera_allocation:
-                camera_allocation[cam_name] = None
+    def detect_realsense(self):  
+        if not HAS_realsense:  
+            return []  
+        ctx = rs.context()  
+        cameras = []  
+        device_list = ctx.query_devices() 
+        for dev in device_list:  
+            name = dev.get_info(rs.camera_info.name)  
+            serial = dev.get_info(rs.camera_info.serial_number)  
+            cam_name = f"realsense_{serial}"  
+            cameras.append(cam_name)  
+            if cam_name not in camera_allocation:  
+                camera_allocation[cam_name] = None  
         return cameras
 
-    def detect_orbbec(self):
-        if not HAS_ORBBEC:
-            return []
-        cameras = []
-        ctx = ob.Context()
-        device_list = ctx.query_devices()
-        for i in range(len(device_list)):
-            device = device_list.get_device_by_index(i)
-            info = device.get_device_info()
-            cam_name = f"Orbbec_{info.get_serial_number()}"
-            cameras.append(cam_name)
-            if cam_name not in camera_allocation:
-                camera_allocation[cam_name] = None
+    def detect_orbbec(self):  
+        if not HAS_orbbec:  
+            return []  
+        cameras = []  
+        ctx = ob.Context()  
+        device_list = ctx.query_devices()  
+        for device in device_list:  
+            info = device.get_device_info()  
+            cam_name = f"orbbec_{info.get_serial_number()}"  
+            cameras.append(cam_name)  
+            if cam_name not in camera_allocation:  
+                camera_allocation[cam_name] = None  
         return cameras
 
     def detect_zed(self):
-        if not HAS_ZED:
+        if not HAS_zed:
             return []
         cameras = []
         for info in sl.Camera.get_device_list():
-            cam_name = f"ZED_{info.serial_number}"
+            cam_name = f"zed_{info.serial_number}"
             cameras.append(cam_name)
             if cam_name not in camera_allocation:
                 camera_allocation[cam_name] = None
@@ -95,19 +96,19 @@ class CameraDetector:
         result = {}
         opencv = self.detect_opencv()
         if opencv:
-            result["OpenCV"] = {"count": len(opencv), "list": opencv}
+            result["opencv"] = {"count": len(opencv), "list": opencv}
 
         rs_cams = self.detect_realsense()
         if rs_cams:
-            result["RealSense"] = {"count": len(rs_cams), "list": rs_cams}
+            result["realsense"] = {"count": len(rs_cams), "list": rs_cams}
 
         orbbec = self.detect_orbbec()
         if orbbec:
-            result["Orbbec"] = {"count": len(orbbec), "list": orbbec}
+            result["orbbec"] = {"count": len(orbbec), "list": orbbec}
 
         zed = self.detect_zed()
         if zed:
-            result["ZED"] = {"count": len(zed), "list": zed}
+            result["zed"] = {"count": len(zed), "list": zed}
 
         return result
 
@@ -115,7 +116,7 @@ class CameraDetector:
 def get_available_cameras():
     detector = CameraDetector()
     all_cams = detector.detect_all()
-    print(all_cams)
+    #print(all_cams)
     available = []
     for cam_type, info in all_cams.items():
         for cam_name in info["list"]:

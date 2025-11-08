@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 def generate_config(components, component_manager, use_videos=False, filename="robot_config"):
     """
@@ -30,9 +31,13 @@ def generate_config(components, component_manager, use_videos=False, filename="r
         config["components"].append(data_to_save)
 
     # 保存文件
-    save_dir = "/home/ray/WanX-EI-Studio/operating_platform/robot/RoboQT/test/config"
+    save_dir = "../config"
     os.makedirs(save_dir, exist_ok=True)
     save_path = os.path.join(save_dir, f"{filename}.json")
+
+    if os.path.exists(save_path):
+        os.remove(save_path)
+        print(f"Existing file {save_path} removed.")
 
     with open(save_path, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=4, ensure_ascii=False)

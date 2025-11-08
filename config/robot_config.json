@@ -1,0 +1,70 @@
+{
+    "use_videos": true,
+    "components": [
+        {
+            "type": "camera/opencv",
+            "params": {
+                "topic": "camera_head",
+                "msgs": "images",
+                "period": 30,
+                "output": [
+                    "image"
+                ]
+            },
+            "id": "top",
+            "outputs_info": {
+                "image": {
+                    "width": 640,
+                    "height": 480,
+                    "channels": 3
+                }
+            }
+        },
+        {
+            "type": "arm/robotera_pose",
+            "params": {
+                "topic": "/arm",
+                "msgs": "pose",
+                "period": 30,
+                "output": [
+                    "pose"
+                ]
+            },
+            "id": "left",
+            "outputs_info": {
+                "pose": {
+                    "motors": {
+                        "position_x": [
+                            1,
+                            "robotera_motor"
+                        ],
+                        "position_y": [
+                            2,
+                            "robotera_motor"
+                        ],
+                        "position_z": [
+                            3,
+                            "robotera_motor"
+                        ],
+                        "orientation_x": [
+                            4,
+                            "robotera_motor"
+                        ],
+                        "orientation_y": [
+                            5,
+                            "robotera_motor"
+                        ],
+                        "orientation_z": [
+                            6,
+                            "robotera_motor"
+                        ],
+                        "orientation_w": [
+                            7,
+                            "robotera_motor"
+                        ]
+                    }
+                }
+            }
+        }
+    ]
+}
