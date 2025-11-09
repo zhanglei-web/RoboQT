@@ -4,6 +4,8 @@ import os
 import io, sys
 import subprocess
 import sys
+
+import yaml
 import uuid
 import cv2
 from PyQt5.QtWidgets import QTextEdit
@@ -16,10 +18,9 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QImage, QPixmap
 import numpy as np
-from component_manager import ComponentManager
+# from component_manager import ComponentManager
 from yaml_to_json import generate_config
 import detect_components
-print("所有摄像头:", detect_components.get_available_cameras())
 from camera_widget import CameraWidget
 from episode_generator import parse_robot_config_to_episode_components, generate_episode_structure
 
@@ -27,6 +28,28 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
 
+class ComponentManager:
+    def __init__(self, yaml_file="../config/components.yaml"):
+        with open(yaml_file, "r", encoding="utf-8") as f:
+            self.components = yaml.safe_load(f)
+        self.mode = "dora"
+
+    def set_mode(self, mode):
+        if mode in self.components:
+            self.mode = mode
+        else:
+            print(f"[WARN] 未找到模式 {mode}")
+
+    def get_groups(self):
+        return self.components.get(self.mode, {})
+
+    def get_flat_components(self):
+        flat = {}
+        groups = self.get_groups()
+        for group_name, group_data in groups.items():
+            for comp_name, comp_info in group_data.items():
+                flat[f"{group_name}/{comp_name}"] = comp_info
+        return flat
 
 
 # 中间画布上单个组件
@@ -333,7 +356,7 @@ class RobotCanvas(QGraphicsView):
 
         group, name = comp_type.split("/", 1)
         if group == "camera":
-            available_cams = detect_components.get_available_cameras()
+            available_cams = detect_components.get_available_cameras(mode=self.component_manager.mode)
             print(f"Available cameras: {available_cams}")  # 调试输出
 
             matched_cam = available_cams[0] if available_cams else None
@@ -417,7 +440,7 @@ class ComponentListPanel(QWidget):
                 child.widget().deleteLater()
 
         components = self.component_manager.get_flat_components()
-        available_cams = detect_components.get_available_cameras()
+        available_cams = detect_components.get_available_cameras(mode=self.component_manager.mode)
 
         for comp_type, comp_info in components.items():
             group, name = comp_type.split("/", 1)

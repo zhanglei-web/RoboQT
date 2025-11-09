@@ -86,7 +86,7 @@ dora:
         output:
           - pose
       outputs_info:
-        pose:
+        psoe:
           motors:
             joint_1: [1, "piper-motor"]
             joint_2: [2, "piper-motor"]
@@ -104,10 +104,10 @@ dora:
 
 ros:
   camera:
-    opencv:
+    image:
       default_params:
         topic: ""
-        msgs: ""
+        msgs: "Image"
         period: 30
         output:
           - image
@@ -116,104 +116,84 @@ ros:
           width: 640
           height: 480
           channels: 3
-    
-    realsense:
-      default_params:
-        topic: ""
-        msgs: ""
-        period: 30
-        output: 
-          - image
-          - image_depth
-      outputs_info:
-        image:
-          width: 640
-          height: 480
-          channels: 3
-        image_depth:
-          width: 640
-          height: 480
-          channels: 3
 
-    orbbec:
+    depth_image:
       default_params:
         topic: ""
-        msgs: ""
+        msgs: "Image"
         period: 30
-        output: 
-          - image
-          - image_depth
+        output:
+          - depth_image
       outputs_info:
         image:
-          width: 640
-          height: 480
-          channels: 3
-        image_depth:
           width: 640
           height: 480
           channels: 3
 
   arm:
-    robotera_pose:
+    ros2_pose:
       default_params:
         topic: ""
-        msgs: ""
+        msgs: "PoseStamped"
         period: 30
         output:
           - pose
       outputs_info:
         pose:
           motors:
-            "position_x": [1, "robotera_motor"]
-            "position_y": [2, "robotera_motor"]
-            "position_z": [3, "robotera_motor"]
-            "orientation_x": [4, "robotera_motor"]
-            "orientation_y": [5, "robotera_motor"]
-            "orientation_z": [6, "robotera_motor"]
-            "orientation_w": [7, "robotera_motor"]
+            "position_x": [1, "robot_motor"]
+            "position_y": [2, "robot_motor"]
+            "position_z": [3, "robot_motor"]
+            "orientation_x": [4, "robot_motor"]
+            "orientation_y": [5, "robot_motor"]
+            "orientation_z": [6, "robot_motor"]
+            "orientation_w": [7, "robot_motor"]
 
-    robotera_finger_joints:
+    ros2_odom:
       default_params:
         topic: ""
-        msgs: ""
+        msgs: "Odometry"
         period: 30
         output:
-          - pose
+          - odom
       outputs_info:
-        pose:
+        odom:
           motors:
-            "hand_thumb_rota_joint2_position": [1, "robotera_motor"]
-            "hand_index_bend_joint_position": [2, "robotera_motor"]
-            "hand_pinky_joint2_position": [3, "robotera_motor"]
-            "hand_index_joint1_position": [4, "robotera_motor"]
-            "hand_index_joint2_position": [5, "robotera_motor"]
-            "hand_mid_joint2_position": [6, "robotera_motor"]
-            "hand_thumb_rota_joint1_position": [7, "robotera_motor"]
-            "hand_ring_joint2_position": [8, "robotera_motor"]
-            "hand_ring_joint1_position": [9, "robotera_motor"]
-            "hand_thumb_bend_joint_position": [10, "robotera_motor"]
-            "hand_mid_joint1_position": [11, "robotera_motor"]
-            "hand_pinky_joint1_position": [12, "robotera_motor"]
+            "position_x": [1, "robot_motor"]
+            "position_y": [2, "robot_motor"]
+            "position_z": [3, "robot_motor"]
+            "orientation_x": [4, "robot_motor"]
+            "orientation_y": [5, "robot_motor"]
+            "orientation_z": [6, "robot_motor"]
+            "orientation_w": [7, "robot_motor"]
+            "linear_x": [8, "robot_motor"]
+            "linear_y": [9, "robot_motor"]
+            "linear_z": [10, "robot_motor"]
+            "angular_x": [11, "robot_motor"]
+            "angular_y": [12, "robot_motor"]
+            "angular_z": [13, "robot_motor"]
 
-    robotera_tasks_joints:
+    ros2_joints:
       default_params:
         topic: ""
-        msgs: ""
+        msgs: "JointState"
         period: 30
         output:
-          - pose
+          - joints
       outputs_info:
-        pose:
+        joints:
           motors:
-            "left_drv_wheel_joint": [1, "robotera_motor"]
-            "left_drv_hang_joint": [2, "robotera_motor"]
-            "neck_pitch_joint": [3, "robotera_motor"]
-            "right_drv_wheel_joint": [4, "robotera_motor"]
-            "ankle_joint": [5, "robotera_motor"]
-            "neck_yaw_joint": [6, "robotera_motor"]
-            "waist_yaw_joint": [7, "robotera_motor"]
-            "right_drv_hang_joint": [8, "robotera_motor"]
-            "hip_joint": [9, "robotera_motor"]
-            "knee_joint": [10, "robotera_motor"]
+            "hand_thumb_rota_joint2_position": [1, "robot_motor"]
+            "hand_index_bend_joint_position": [2, "robot_motor"]
+            "hand_pinky_joint2_position": [3, "robot_motor"]
+            "hand_index_joint1_position": [4, "robot_motor"]
+            "hand_index_joint2_position": [5, "robot_motor"]
+            "hand_mid_joint2_position": [6, "robot_motor"]
+            "hand_thumb_rota_joint1_position": [7, "robot_motor"]
+            "hand_ring_joint2_position": [8, "robot_motor"]
+            "hand_ring_joint1_position": [9, "robot_motor"]
+            "hand_thumb_bend_joint_position": [10, "robot_motor"]
+            "hand_mid_joint1_position": [11, "robot_motor"]
+            "hand_pinky_joint1_position": [12, "robot_motor"]
 
 

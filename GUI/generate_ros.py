@@ -143,3 +143,4 @@ if __name__ == "__main__":
     folder = make_output_dir("../../robots", "demo_robot")
     json_to_py("../config/robot_config.json",os.path.join(folder, "robot_config.py"))
     copy_file_to_dir("../templates/manipulator.py", folder)
+    copy_file_to_dir("../templates/ros2_zeromq.py", folder)

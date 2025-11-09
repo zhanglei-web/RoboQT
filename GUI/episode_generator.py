@@ -83,7 +83,14 @@ def parse_robot_config_to_episode_components(json_path):
 
         elif comp_type.startswith("arm/") or comp_type.startswith("robot_arm"):
             arm_name = f"robot_arm_{comp_id}" 
-            outputs_info = comp.get("outputs_info", {}).get("pose", {})
+            outputs_info_all = comp.get("outputs_info", {})
+
+            if len(outputs_info_all) > 0:
+                first_key = list(outputs_info_all.keys())[0]
+                outputs_info = outputs_info_all[first_key]
+            else:
+                outputs_info = {}
+
             motors = outputs_info.get("motors", {})
             dof = len(motors) if motors else 6
 
@@ -91,6 +98,7 @@ def parse_robot_config_to_episode_components(json_path):
                 "dof": dof,
                 "outputs": outputs
             }
+
 
     return components
 
