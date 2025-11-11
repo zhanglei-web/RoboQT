@@ -37,25 +37,41 @@ def json_to_py(json_file: str, py_file: str):
 
     # -------- follower_motors --------
     follower_entries = []
-    for comp in config["components"]:
-        comp_type = comp["type"]
-        comp_id = comp["id"]
-        outputs = comp["params"].get("output", [])
-        outputs_info = comp.get("outputs_info", {})
+    # for comp in config["components"]:
+    #     comp_type = comp["type"]
+    #     comp_id = comp["id"]
+    #     outputs = comp["params"].get("output", [])
+    #     outputs_info = comp.get("outputs_info", {})
 
-        for output in outputs:
-            if "pose" in output:
-                motors = outputs_info.get(output, {}).get("motors", {})
-                follower_entries.append(f'            "{comp_id}": DDSMotorsBusConfig(')
-                follower_entries.append(f'                topic="",')
-                follower_entries.append(f'                group="",')
-                follower_entries.append("                motors={")
-                for k, v in motors.items():
-                    # 统一使用单引号
-                    v_str = str(v).replace('"', "'")
-                    follower_entries.append(f'                    "{k}": {v_str},')
-                follower_entries.append("                },")
-                follower_entries.append("            ),")
+    #     for output in outputs:
+    #         if "pose" in output:
+    #             motors = outputs_info.get(output, {}).get("motors", {})
+    #             follower_entries.append(f'            "{comp_id}": DDSMotorsBusConfig(')
+    #             follower_entries.append(f'                topic="",')
+    #             follower_entries.append(f'                group="",')
+    #             follower_entries.append("                motors={")
+    #             for k, v in motors.items():
+    #                 # 统一使用单引号
+    #                 v_str = str(v).replace('"', "'")
+    #                 follower_entries.append(f'                    "{k}": {v_str},')
+    #             follower_entries.append("                },")
+    #             follower_entries.append("            ),")
+    for comp in config["components"]:
+        comp_id   = comp["id"]
+        # 直接遍历 outputs_info，不再管 outputs 列表
+        for out_name, out_cfg in comp.get("outputs_info", {}).items():
+            motors = out_cfg.get("motors")
+            if not motors:          # 没有 motors 就跳过
+                continue
+            follower_entries.append(f'            "{comp_id}": DDSMotorsBusConfig(')
+            follower_entries.append(f'                topic="",')
+            follower_entries.append(f'                group="",')
+            follower_entries.append("                motors={")
+            for k, v in motors.items():
+                v_str = str(v).replace('"', "'")
+                follower_entries.append(f'                    "{k}": {v_str},')
+            follower_entries.append("                },")
+            follower_entries.append("            ),")
 
     if follower_entries:
         lines.append("    follower_motors: dict[str, MotorsBusConfig] = field(")

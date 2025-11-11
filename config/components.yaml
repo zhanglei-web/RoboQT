@@ -27,21 +27,7 @@ dora:
           - image_depth
         encoding: "bgr8"
       outputs_info:
-        image:
-          width: 640
-          height: 480
-          channels: 3
-        image_depth:
-          width: 640
-          height: 480
-          channels: 3
-    
-    orbbec:
-      default_params:
-        path: ../../components/camera_rgbd_orbbec/main.py
-        period: 30
-        width: 640
-        height: 480
+        image:oding: "bgr8"
         device_serial: ""
         output:  
           - image
@@ -135,6 +121,7 @@ ros:
       default_params:
         topic: ""
         msgs: "PoseStamped"
+        group: ""
         period: 30
         output:
           - pose
@@ -153,6 +140,7 @@ ros:
       default_params:
         topic: ""
         msgs: "Odometry"
+        group: ""
         period: 30
         output:
           - odom
@@ -177,6 +165,7 @@ ros:
       default_params:
         topic: ""
         msgs: "JointState"
+        group: ""
         period: 30
         output:
           - joints
@@ -190,10 +179,6 @@ ros:
             "hand_index_joint2_position": [5, "robot_motor"]
             "hand_mid_joint2_position": [6, "robot_motor"]
             "hand_thumb_rota_joint1_position": [7, "robot_motor"]
-            "hand_ring_joint2_position": [8, "robot_motor"]
-            "hand_ring_joint1_position": [9, "robot_motor"]
-            "hand_thumb_bend_joint_position": [10, "robot_motor"]
-            "hand_mid_joint1_position": [11, "robot_motor"]
-            "hand_pinky_joint1_position": [12, "robot_motor"]
+
 
 

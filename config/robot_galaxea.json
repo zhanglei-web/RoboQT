@@ -11,7 +11,7 @@
                     "image"
                 ]
             },
-            "id": "image_top_right",
+            "id": "top_right",
             "outputs_info": {
                 "image": {
                     "width": 640,
@@ -30,7 +30,7 @@
                     "image"
                 ]
             },
-            "id": "image_top_left",
+            "id": "top_left",
             "outputs_info": {
                 "image": {
                     "width": 640,
@@ -77,6 +77,10 @@
                         "hand_mid_joint2_position": [
                             6,
                             "robot_motor"
+                        ],
+                        "hand_thumb_rota_joint1_position": [
+                            7,
+                            "robot_motor"
                         ]
                     }
                 }
@@ -119,6 +123,10 @@
                         ],
                         "hand_mid_joint2_position": [
                             6,
+                            "robot_motor"
+                        ],
+                        "hand_thumb_rota_joint1_position": [
+                            7,
                             "robot_motor"
                         ]
                     }

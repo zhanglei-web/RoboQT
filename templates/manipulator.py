@@ -47,16 +47,42 @@ def recv_server(key_dict):
                     with lock:
                         recv_follower[event_id] = data
                     break  
-            
+
             if 'image' in event_id:
                 # 解码图像
                 if 'depth' not in event_id:
                     img_array = np.frombuffer(buffer_bytes, dtype=np.uint8)
-                    frame = img_array.reshape((480, 640, 3))  # 已经是 RGB 格式 
+                    encoding = metadata["encoding"].lower()
+                    width = metadata["width"]
+                    height = metadata["height"]
+
+                    if encoding == "bgr8":
+                        channels = 3
+                        frame = (
+                            img_array.reshape((height, width, channels))
+                            .copy()  # Copy So that we can add annotation on the image
+                        )
+                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # BGR → RGB 转换
+                    elif encoding == "rgb8":
+                        channels = 3
+                        frame = (img_array.reshape((height, width, channels)))
+                        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # BGR → RGB 转换
+                    elif encoding in ["jpeg", "jpg", "jpe", "bmp", "webp", "png"]:
+                        channels = 3
+                        frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # BGR → RGB 转换
+                    elif encoding == "depth16":
+                        # 假设 depth_array 是从 ROS 消息转换的 16UC1 数组
+                        frame = np.frombuffer(buffer_bytes, dtype=np.uint16).reshape(height, width,1)
+                        # # 保存为 16 位 PNG（无损）
+                        # cv2.imwrite("depth_image.png", depth_array)
+
                     if frame is not None:
                         with lock:
                             #print(f"Received event_id = {event_id}")
                             recv_images[event_id] = frame
+
                 elif 'depth' in event_id: 
                     print(len(buffer_bytes))
                     depth_array = np.frombuffer(buffer_bytes, dtype=np.uint16)
@@ -86,6 +112,46 @@ def recv_server(key_dict):
                         with lock:
                             # print(f"Received event_id = {event_id}")
                             recv_images[event_id] = rgb_depth
+               
+            
+            # if 'image' in event_id:
+            #     # 解码图像
+            #     if 'depth' not in event_id:
+            #         img_array = np.frombuffer(buffer_bytes, dtype=np.uint8)
+            #         frame = img_array.reshape((480, 640, 3))  # 已经是 RGB 格式 
+            #         if frame is not None:
+            #             with lock:
+            #                 #print(f"Received event_id = {event_id}")
+            #                 recv_images[event_id] = frame
+            #     elif 'depth' in event_id: 
+            #         print(len(buffer_bytes))
+            #         depth_array = np.frombuffer(buffer_bytes, dtype=np.uint16)
+            #         depth_frame = depth_array.reshape((480, 640))  # 已经是 RGB 格式
+            #         if depth_frame is not None:
+            #             # 排除无效值（可选，根据传感器特性，例如0或65535可能是无效深度）
+            #             valid_mask = (depth_frame > 0) & (depth_frame < 65535)
+            #             if np.any(valid_mask):
+            #                 # 仅对有效区域归一化，避免无效值干扰
+            #                 valid_depth = depth_frame[valid_mask]
+            #                 min_val = valid_depth.min()
+            #                 max_val = valid_depth.max()
+            #             else:
+            #                 # 若全无效，强制范围为0~65535
+            #                 min_val, max_val = 0, 65535
+
+            #             depth_16bit = cv2.normalize(
+            #             depth_frame,
+            #             None,
+            #             alpha=0,
+            #             beta=65535,
+            #             norm_type=cv2.NORM_MINMAX,
+            #             dtype=cv2.CV_16U  # 转换为16位无符号整数
+            #             )
+            #             rgb_depth = cv2.cvtColor(depth_16bit, cv2.COLOR_GRAY2RGB)  # 扩展维度到(480,640,3)以实现保存
+            #             # 存储归一化后的图像用于显示
+            #             with lock:
+            #                 # print(f"Received event_id = {event_id}")
+            #                 recv_images[event_id] = rgb_depth
         except Exception as e:
             print(f"[pose_recv_server] Error: {e}")
             continue

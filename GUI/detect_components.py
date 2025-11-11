@@ -38,12 +38,7 @@
 # # ------------------ 探测器 ------------------
 # class CameraDetector:
 #     def __init__(self, max_opencv_index=10):
-#         self.max_opencv_index = max_opencv_index
-
-#     def detect_opencv(self):
-#         cameras = []
-#         for i in range(self.max_opencv_index):
-#             cap = cv2.VideoCapture(i)
+#         self.max_opencv_index = max_opencv_index/hdas/camera_wrist_right/aligned_depth_to_color/image_raw
 #             if cap.isOpened():
 #                 cam_name = f"opencv_{i}"
 #                 cameras.append(cam_name)
@@ -99,7 +94,7 @@
 #             result["opencv"] = {"count": len(opencv), "list": opencv}
 
 #         rs_cams = self.detect_realsense()
-#         if rs_cams:
+#         if rs_cams:/hdas/camera_wrist_right/aligned_depth_to_color/image_raw
 #             result["realsense"] = {"count": len(rs_cams), "list": rs_cams}
 
 #         orbbec = self.detect_orbbec()
@@ -280,7 +275,7 @@ def detect_ros_cameras():
     cameras = {"image_list": [], "depth_image_list": []}
     try:
         # 调用 rostopic list
-        proc = subprocess.run(["rostopic", "list"], capture_output=True, text=True, check=True)
+        proc = subprocess.run(["ros2","topic", "list"], capture_output=True, text=True, check=True)
         topics = proc.stdout.strip().splitlines()
     except Exception as e:
         # 当没有 roscore 或 rostopic 命令不可用时，直接返回空

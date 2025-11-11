@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import JointState, Image
+from sensor_msgs.msg import JointState, Image,CompressedImage
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Odometry
 from message_filters import Subscriber, ApproximateTimeSynchronizer
@@ -59,6 +59,8 @@ class ROS2BridgeNode(Node,):
                 msg_type = JointState
             elif msg_type_name == "Image":
                 msg_type = Image
+            elif msg_type_name == "CompressedImage":
+                msg_type = CompressedImage
             else:
                 self.get_logger().warn(f"未知消息类型: {msg_type_name}, 跳过 {comp_id}")
                 continue
@@ -117,6 +119,20 @@ class ROS2BridgeNode(Node,):
                     encoding = info.get("encoding", None)
                     if encoding is None:
                         encoding = getattr(msg, "encoding", "bgr8")
+
+                    meta = {
+                        "encoding": encoding,
+                        "width": msg.width,
+                        "height": msg.height,
+                        "timestamp": msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+                    }
+                    self.send_zmq_event(comp_id, msg.data, meta)
+
+                elif msg_type == "CompressedImage":
+                    # encoding = info.get("encoding", None)
+                    encoding = None
+                    if encoding is None:
+                        encoding = getattr(msg, "encoding", "jpeg")
 
                     meta = {
                         "encoding": encoding,
